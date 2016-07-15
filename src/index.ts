@@ -13,7 +13,8 @@ import SpeciesModel from './models/species'
 
 const app = express()
 
-const apiHost = process.env.API_HOST ? `${process.env.API_HOST}/api` : 'http://swapi.co/api'
+const apiPort = process.env.API_PORT ? `:${process.env.API_PORT}` : ''
+const apiHost = process.env.API_HOST ? `${process.env.API_HOST}${apiPort}/api` : 'http://swapi.co/api'
 const port = process.env.NODE_PORT || 3000
 
 app.use('/graphql', apollo.apolloServer((req) => {

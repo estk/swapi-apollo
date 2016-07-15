@@ -1,4 +1,5 @@
 import * as request from 'request'
+import * as path from 'path'
 const DataLoader = require('dataloader')
 
 export default class SWAPIConnector {
@@ -16,15 +17,20 @@ export default class SWAPIConnector {
   }
 
   public fetch(resource: string) {
-    const url = resource.indexOf(this.rootURL) === 0 ? resource : this.rootURL + resource
+    const url = makeUrl(resource)
 
     return new Promise<any>((resolve, reject) => {
-      console.log(`fetch: ${url}`)
       request.get(url, (err, resp, body) => {
         console.log(`fetch: ${url} completed`)
         err ? reject(err) : resolve(JSON.parse(body))
       })
     })
+    function makeUrl(resource) {
+      const u = resource.indexOf(this.rootURL) === 0
+        ? resource
+        : path.join(this.rootURL, resource)
+      return path.normalize(u)
+    }
   }
 
   public fetchPage(resource: string, offset?: number, limit?: number) {
