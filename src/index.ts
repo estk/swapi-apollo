@@ -17,8 +17,8 @@ import SpeciesModel from './models/species'
 const app = express()
 
 
-const apiPort = process.env.API_PORT ? process.env.API_PORT : ''
-const apiHost = process.env.API_HOST ? `${process.env.API_HOST}` : 'http://swapi.co'
+const apiPort = process.env.API_PORT || 80
+const apiHost = process.env.API_HOST || 'swapi.co'
 const expressPort = process.env.EXPRESS_PORT || 3000
 
 const schema = gqlTools.makeExecutableSchema({ typeDefs, resolvers })
