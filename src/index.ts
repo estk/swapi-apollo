@@ -20,7 +20,6 @@ const app = express()
 const apiPort = process.env.API_PORT ? process.env.API_PORT : ''
 const apiHost = process.env.API_HOST ? `${process.env.API_HOST}` : 'http://swapi.co'
 const expressPort = process.env.EXPRESS_PORT || 3000
-const hapiPort = process.env.HAPI_PORT || 8000
 
 const schema = gqlTools.makeExecutableSchema({ typeDefs, resolvers })
 
