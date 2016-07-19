@@ -1,13 +1,16 @@
+import * as http from 'http'
 import * as request from 'request'
 import * as path from 'path'
 const DataLoader = require('dataloader')
 
 export default class SWAPIConnector {
   public loader
+  private pool
   private rootURL: string
 
   constructor(rootURL: string) {
     this.rootURL = rootURL
+    this.pool = new http.Agent()
     this.loader = new DataLoader((urls) => {
       const promises = urls.map((url) => {
         return this.fetch(url)
@@ -17,20 +20,14 @@ export default class SWAPIConnector {
   }
 
   public fetch(resource: string) {
-    const url = makeUrl(resource)
+    const url = resource.indexOf(this.rootURL) === 0 ? resource : this.rootURL + resource
 
     return new Promise<any>((resolve, reject) => {
-      request.get(url, (err, resp, body) => {
+      request.get({url, pool: this.pool}, (err, resp, body) => {
         console.log(`fetch: ${url} completed`)
         err ? reject(err) : resolve(JSON.parse(body))
       })
     })
-    function makeUrl(resource) {
-      const u = resource.indexOf(this.rootURL) === 0
-        ? resource
-        : path.join(this.rootURL, resource)
-      return path.normalize(u)
-    }
   }
 
   public fetchPage(resource: string, offset?: number, limit?: number) {
