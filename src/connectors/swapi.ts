@@ -5,12 +5,13 @@ const DataLoader = require('dataloader')
 
 export default class SWAPIConnector {
   public loader
-  private pool
+  private hostname
+  private port
   private rootURL: string
 
-  constructor(rootURL: string) {
-    this.rootURL = rootURL
-    this.pool = new http.Agent()
+  constructor(hostname: string, port: string) {
+    this.hostname = hostname
+    this.port = port
     this.loader = new DataLoader((urls) => {
       const promises = urls.map((url) => {
         return this.fetch(url)
@@ -20,13 +21,23 @@ export default class SWAPIConnector {
   }
 
   public fetch(resource: string) {
-    const url = resource.indexOf(this.rootURL) === 0 ? resource : this.rootURL + resource
+    const baseUrl = `http://${this.hostname}:${this.port}/api`
+    const url = resource.indexOf(this.hostname) == -1
+        ? baseUrl + resource
+        : resource.replace(`http://${this.hostname}/api`, baseUrl)
+    console.log(url)
 
     return new Promise<any>((resolve, reject) => {
-      request.get({url, pool: this.pool}, (err, resp, body) => {
-        console.log(`fetch: ${url} completed`)
-        err ? reject(err) : resolve(JSON.parse(body))
+      const req = http.request(url, (res) => {
+          if (res.statusCode < 200 || res.statusCode > 299) {
+              reject(new Error(`Failed to fetch: ${url} statusCode: ${res.statusCode}`))
+          }
+          const body = []
+          res.on('data', (chunk) => body.push(chunk))
+          res.on('end', () => resolve( JSON.parse(body.join()) ))
       })
+      req.on('error', (err) => reject(err))
+      req.end()
     })
   }
 
@@ -36,8 +47,7 @@ export default class SWAPIConnector {
     const size = limit || 0
 
     function pagination(pageURL: string) {
-      return new Promise<any>((resolve, reject) => {
-        this.fetch(pageURL).then((data) => {
+      return this.fetch(pageURL).then((data) => {
           // fast forward until offset is reached
           if (offset && results.length === 0) {
             if (index + data.results.length > offset) {
@@ -45,9 +55,9 @@ export default class SWAPIConnector {
             }
             if (data.next) {
               index = index + data.results.length
-              pagination.call(this, data.next).then(resolve)
+              return pagination.call(this, data.next)
             } else {
-              resolve(results)
+              return results
             }
           } else {
             if (size > 0 && size - results.length - data.results.length < 0) {
@@ -56,13 +66,12 @@ export default class SWAPIConnector {
               results = results.concat(data.results)
             }
             if (data.next && (size === 0 || size - results.length > 0)) {
-              pagination.call(this, data.next).then(resolve)
+              return pagination.call(this, data.next)
             } else {
-              resolve(results)
+              return results
             }
           }
         })
-      })
     }
 
     return pagination.call(this, resource)
